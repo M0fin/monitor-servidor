@@ -6,9 +6,9 @@ import requests
 import threading
 from flask import Flask
 
-# Configuraciones desde variables de entorno
+# Configuraciones
 SERVER_URL = os.getenv('SERVER_URL')
-CHECK_INTERVAL = 30  # segundos
+CHECK_INTERVAL = 30
 
 SMTP_SERVER = os.getenv('SMTP_SERVER')
 SMTP_PORT = int(os.getenv('SMTP_PORT', '587'))
@@ -16,7 +16,7 @@ SMTP_USER = os.getenv('SMTP_USER')
 SMTP_PASSWORD = os.getenv('SMTP_PASSWORD')
 DESTINATARIO = os.getenv('DESTINATARIO')
 
-# Configurar servidor Flask para abrir un puerto (así Render no apaga el servicio)
+# Flask app para mantener Render vivo
 app = Flask(__name__)
 
 @app.route('/')
@@ -24,6 +24,7 @@ def home():
     return "Monitor corriendo 🚀", 200
 
 def iniciar_servidor_web():
+    print("🌐 Servidor Flask iniciado en puerto 10000")
     app.run(host="0.0.0.0", port=10000)
 
 def enviar_sms(asunto, mensaje):
@@ -41,13 +42,6 @@ def enviar_sms(asunto, mensaje):
     except Exception as e:
         print(f"❌ Error al enviar SMS: {e}")
 
-def verificar_http():
-    try:
-        response = requests.get(SERVER_URL, timeout=10)
-        return response.status_code == 200
-    except requests.RequestException:
-        return False
-
 def iniciar_monitoreo():
     caido = False
     print(f"🚀 Monitoreando: {SERVER_URL} cada {CHECK_INTERVAL} segundos...")
@@ -63,6 +57,15 @@ def iniciar_monitoreo():
                 caido = True
         time.sleep(CHECK_INTERVAL)
 
+def verificar_http():
+    try:
+        response = requests.get(SERVER_URL, timeout=10)
+        return response.status_code == 200
+    except requests.RequestException:
+        return False
+
 if __name__ == "__main__":
-    threading.Thread(target=iniciar_servidor_web).start()
+    # Lanzar Flask en un hilo aparte
+    threading.Thread(target=iniciar_servidor_web, daemon=True).start()
+    # Ejecutar el monitoreo en el hilo principal
     iniciar_monitoreo()
