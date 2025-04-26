@@ -65,7 +65,7 @@ def iniciar_monitoreo():
     while True:
         if verificar_http():
             if caido:
-                enviar_correo("✅ Servidor Recuperado", f"El servidor {SERVER_URL} volvió en línea.")
+                enviar_correo("✅ Servidor Recuperado", f"El servidor de la intranet IM volvió en línea.")
                 caido = False
                 intervalo = CHECK_INTERVAL_NORMAL
             else:
@@ -74,7 +74,7 @@ def iniciar_monitoreo():
             if not caido:
                 caido = True  # activa modo de caída
                 print(f"⚠️ Servidor en caída detectada, iniciando alertas continuas...")
-            enviar_correo("⚠️ Servidor Caído", f"{SERVER_URL} no responde.")
+            enviar_correo("⚠️ Servidor Caído", "El servidor de la intranet IM no responde.")
             intervalo = CHECK_INTERVAL_CAIDO
 
         time.sleep(intervalo)
