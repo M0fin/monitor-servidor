@@ -9,17 +9,16 @@ from datetime import datetime
 
 # Configuraciones
 SERVER_URL = os.getenv('SERVER_URL')
-CHECK_INTERVAL = 30
+CHECK_INTERVAL_NORMAL = int(os.getenv('CHECK_INTERVAL_NORMAL', '600'))  # 10 min
+CHECK_INTERVAL_CAIDO = int(os.getenv('CHECK_INTERVAL_CAIDO', '30'))     # 30 seg
 
 SMTP_SERVER = os.getenv('SMTP_SERVER')
 SMTP_PORT = int(os.getenv('SMTP_PORT', '587'))
 SMTP_USER = os.getenv('SMTP_USER')
 SMTP_PASSWORD = os.getenv('SMTP_PASSWORD')
 
-# Soporta múltiples correos separados por coma
 DESTINATARIOS = os.getenv('DESTINATARIO').split(',')
 
-# Flask app para Render
 app = Flask(__name__)
 
 @app.route('/')
@@ -60,19 +59,25 @@ def verificar_http():
 
 def iniciar_monitoreo():
     caido = False
-    print(f"🚀 Monitoreando: {SERVER_URL} cada {CHECK_INTERVAL} segundos...")
-    log_evento(f"Iniciado monitoreo a {SERVER_URL}")
+    intervalo = CHECK_INTERVAL_NORMAL
+    print(f"🚀 Monitoreando: {SERVER_URL}...")
 
     while True:
         if verificar_http():
             if caido:
-                enviar_correo("✅ Servidor Recuperado", f"El servidor {SERVER_URL} ya está en línea.")
+                enviar_correo("✅ Servidor Recuperado", f"El servidor {SERVER_URL} volvió en línea.")
                 caido = False
+                intervalo = CHECK_INTERVAL_NORMAL
+            else:
+                log_evento(f"[OK] Verificado: {SERVER_URL} está en línea.")
         else:
             if not caido:
-                enviar_correo("⚠️ Servidor Caído", f"{SERVER_URL} no responde.")
-                caido = True
-        time.sleep(CHECK_INTERVAL)
+                caido = True  # activa modo de caída
+                print(f"⚠️ Servidor en caída detectada, iniciando alertas continuas...")
+            enviar_correo("⚠️ Servidor Caído", f"{SERVER_URL} no responde.")
+            intervalo = CHECK_INTERVAL_CAIDO
+
+        time.sleep(intervalo)
 
 if __name__ == "__main__":
     threading.Thread(target=iniciar_servidor_web, daemon=True).start()
